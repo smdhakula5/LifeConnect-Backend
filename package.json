@@ -1,0 +1,23 @@
+{
+  "name": "lifeconnect-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/smdhakula5/LifeConnect-Backend.git"
+  },
+  "author": "Sumedh Maharaj",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/smdhakula5/LifeConnect-Backend/issues"
+  },
+  "homepage": "https://github.com/smdhakula5/LifeConnect-Backend#readme",
+  "dependencies": {
+    "mongodb": "^5.1.0",
+    "mongoose": "^7.0.2"
+  }
+}
