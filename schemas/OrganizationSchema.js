@@ -1,5 +1,5 @@
 // importing the required modules
-const latAndLong = require("./LatAndLongObject.js")
+import latAndLong from "./LatAndLongObject.js";
 
 
 // defining organization schema
@@ -18,11 +18,11 @@ const OrganizationSchema = {
     },
 
     address: {
-        type: latAndLong,
+        type: Object,
         required: true
     }
 }
 
 
 // exporting the schema
-module.exports = OrganizationSchema;
+export default OrganizationSchema;

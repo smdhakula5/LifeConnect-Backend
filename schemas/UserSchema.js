@@ -1,5 +1,5 @@
 // Importing the required modules
-const latAndLong = require("./LatAndLongObject.js")
+import latAndLong from "./LatAndLongObject.js";
 
 
 // Schema of Every User
@@ -15,12 +15,12 @@ const UserSchema = {
     },
 
     permanentAddress: {
-        type: latAndLong,
+        type: Object,
         required: true
     },
 
     currentAddress: {
-        type: latAndLong,
+        type: Object,
         required: false
     },
     phoneNumber: {
@@ -42,4 +42,4 @@ const UserSchema = {
 
 
 // exporting the schema
-module.exports = UserSchema
+export default UserSchema;
