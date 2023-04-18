@@ -1,5 +1,6 @@
 {
   "name": "lifeconnect-backend",
+  "type": "module",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -17,7 +18,11 @@
   },
   "homepage": "https://github.com/smdhakula5/LifeConnect-Backend#readme",
   "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "mongodb": "^5.1.0",
-    "mongoose": "^7.0.2"
+    "mongoose": "^7.0.2",
+    "nodemon": "^2.0.22"
   }
 }

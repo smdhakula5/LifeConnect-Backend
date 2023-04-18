@@ -1,9 +1,9 @@
 // Object literal for latitude and longitude
-const latAndLong = {
-    latitude: String,
-    longitude: String
+function latAndLong(latitude,longitude){
+    this.latitude = latitude;
+    this.longitude = longitude;
 }
 
 
 // exporting latitude and longitude object
-module.exports = latAndLong;
+export default latAndLong;
