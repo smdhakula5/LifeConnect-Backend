@@ -11,7 +11,7 @@ const UserSchema = {
 
     bloodGroup: {
         type: String,
-        required: true
+        required: false
     },
 
     permanentAddress: {
