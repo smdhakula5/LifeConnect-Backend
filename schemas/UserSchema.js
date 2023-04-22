@@ -11,7 +11,7 @@ const UserSchema = {
 
     bloodGroup: {
         type: String,
-        required: true
+        required: false
     },
 
     permanentAddress: {
@@ -36,9 +36,19 @@ const UserSchema = {
     password: {
         type: String,
         required: true
-    }
+    },
 
+    bloodGroups: [
+        BloodGroupCountsSchema
+    ]
 }
+
+const BloodGroupCountsSchema = new Schema({
+    bloodGroup: { type: String, required: true },
+    count: { type: Number, required: true, default: 0 }
+});
+
+
 
 
 // exporting the schema
