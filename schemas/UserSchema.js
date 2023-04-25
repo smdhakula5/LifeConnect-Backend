@@ -9,21 +9,12 @@ const UserSchema = {
         required: true
     },
 
-    bloodGroup: {
+    phoneNumber: {
         type: String,
-        required: false
-    },
-
-    permanentAddress: {
-        type: Object,
         required: true
     },
 
-    currentAddress: {
-        type: Object,
-        required: false
-    },
-    phoneNumber: {
+    permanentAddress: {
         type: String,
         required: true
     },
@@ -38,18 +29,57 @@ const UserSchema = {
         required: true
     },
 
+    // Fields specific to Donor
+    bloodGroup: {
+        type: String,
+        required: false
+    },
+
+    // Fields specific to Hospital
     bloodGroups: [
-        BloodGroupCountsSchema
+        {
+            bloodType: {
+                type: String,
+                required: true
+            },
+            count: {
+                type: Number,
+                required: true,
+                default: 0
+            }
+        }
     ]
 }
-
-const BloodGroupCountsSchema = new Schema({
-    bloodGroup: { type: String, required: true },
-    count: { type: Number, required: true, default: 0 }
-});
-
-
-
-
 // exporting the schema
 export default UserSchema;
+
+/*
+
+// Donor User
+const donorUser = {
+  name: "John Doe",
+  phoneNumber: "1234567890",
+  userName: "johndoe",
+  password: "password123",
+  bloodGroup: "A+"
+};
+
+// Hospital User
+const hospitalUser = {
+  name: "XYZ Hospital",
+  phoneNumber: "0987654321",
+  userName: "xyzhospital",
+  password: "password456",
+  bloodGroups: [
+    { bloodType: "A+", count: 10 },
+    { bloodType: "B+", count: 5 },
+    { bloodType: "AB+", count: 7 },
+    { bloodType: "O+", count: 12 },
+    { bloodType: "A-", count: 3 },
+    { bloodType: "B-", count: 2 },
+    { bloodType: "AB-", count: 1 },
+    { bloodType: "O-", count: 4 }
+  ]
+};
+
+*/
