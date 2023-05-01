@@ -18,16 +18,14 @@ const ReceiverSchema = new mongoose.Schema({
             "O-": 0
         }
     },
-    location: {
-        type: {
-          type: String,
-          default: 'Point'
-        },
-        coordinates: {
-          type: [Number],
-          index: '2dsphere'
-        }
-      }
+    latitude:{
+      type: String,
+      required:true
+    },
+    longitude:{
+      type: String,
+      required:true
+    }
     
 });
 

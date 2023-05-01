@@ -8,6 +8,7 @@ import { Db } from "mongodb";
 import cors from "cors";
 
 const MINIMUM = 5;
+const DISTANCE = 5;
 
 const app = express();
 app.use(bodyParser.json());
@@ -139,39 +140,69 @@ app.post("/users/:userName/check", async (req, res) => {
 
     const userName = req.params.userName;
 
-    await Receiver.find({ userName: userName }).exec().then((data) => {
-        if (data === null || data.length == 0) {
-            console.log(`User not found with username ${userName}`);
-            res.status(404).send(`User with username ${userName} Not found to check quantities`);
-        }
+    // Temporary bullshit code. Should optimize
+    await Receiver.find({userName:userName}).exec().then((data) => {
+        const responseFromDb = data[0];
+        const lat = responseFromDb.latitude;
+        const long = responseFromDb.longitude;
+        const existingMapOfBlood = responseFromDb.bloodTypes;
+        let requiredBlood = [];
 
-        const responseFromDB = data[0];
 
-        let requiredBloodGroups = [];
-        responseFromDB.bloodGroups.forEach((value) => {
-            if(value.count<MINIMUM)
-            {
-                requiredBloodGroups.add(value);
-            }
-        });
+        console.log(`Successfully fetched data for receiver with user name ${userName}`);
 
-        if(requiredBloodGroups.length == 0)
+        for(const [key,value] of existingMapOfBlood)
         {
+            if(value<MINIMUM)
+            {
+                requiredBlood.push(key);
+            }
+        }
 
-            res.send("All the blood groups are sufficient");
+        // NO REQUIREMENT. SENDS THE COUNT OF EXISTING BLOOD TYPES
+        if(requiredBlood.length==0)
+        {
+           return res.send(existingMapOfBlood);
+        }
+
+        let queryParams = [];
+
+        for(const i of requiredBlood)
+        {
+            queryParams.push({bloodGroup:i});
         }
         
-        // TODO GENERATE ALERTS FUNCTIONALITY
+        const unitValue = 1000;
+        const users =  User.aggregate([
+            {
+                $geoNear: {
+                    near: {
+                        type: 'Point',
+                        coordinates: [long, lat]
+                    },
+                    query: { 
+                        $or:queryParams
+                    },
+                    maxDistance: DISTANCE * unitValue,
+                    distanceField: 'distance',
+                    distanceMultiplier: 1 / unitValue
+                }
+            },
+            
+            {
+                $sort:{
+                    distance:1
+                }
+            }
+            
+        ]);
 
-        // LANGA CODE. SHOULD BE OPTIMIZED BY MAINTAING ONLY ONE SCHEMA FOR EVERTHING.
-
-        
+        return res.status(201).send(users);
 
     }).catch((err) => {
-        console.error(`Could not connect to DB to check quantites for user with username ${userName}`);
-        res.status(500).send(`Could not connect to DB to check quantites for user with username ${userName}`);
+        console.error(`Error in fetching details for user with user name  ${userName}`);
+        res.status(500).send("INTERNAL SERVER ERROR: "+err);
     })
-
 
 
 });
