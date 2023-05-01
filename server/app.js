@@ -1,5 +1,6 @@
 import latAndLong from "../schemas/LatAndLongObject.js";
 import UserSchema from "../schemas/UserSchema.js";
+import ReceiverSchema from "../schemas/ReceiverSchema.js";
 import express from "express";
 import mongoose from "mongoose";
 import bodyParser from "body-parser";
@@ -7,12 +8,14 @@ import { Db } from "mongodb";
 import cors from "cors";
 
 const MINIMUM = 5;
+const DISTANCE = 5;
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 mongoose.connect("mongodb://localhost:27017/LifeConnect");
 const User = mongoose.model("User", UserSchema);
+const Receiver = mongoose.model("Receiver",ReceiverSchema);
 
 
 app.listen(3000,'0.0.0.0',() => {
@@ -43,43 +46,6 @@ app.post('/users/login', async (req, res) => {
     
 });
 
-/* API for signup
-app.post("/users/signup", async (req, res) => {
-    // console.log(typeof(req.body));
-    // If request is null, send bad request
-    if (Object.keys(req.body).length===0) {
-        console.error("Request body is null while signing up");
-        return res.status(400).send({ "status": false, "message": "Request body is null while signing up!" });
-    }
-
-    const userName = req.body.userName;
-
-    // Checking if user is already present
-    const existingData = await User.find({ userName: userName }).exec().then((existingData) => {
-        if (existingData != null && existingData.length != 0) {
-            console.error(`User already exists with username as ${req.body.userName}`);
-            return res.status(403).send({ "status": false, "message": "User Already Exists!" });
-        }
-    });
-
-    console.log(req.body);
-
-
-    // After all the guards, creating a new user
-    await User.create(req.body).then((data) => {
-        console.log(`Saving details in DB for user with user name ${userName}`)
-        res.status(201).send({
-            "status": true,
-            "userName": userName,
-            "userType": (req.body.bloodGroup != null ? "donor" : "receiver")
-        })
-    }).catch((err) => {
-        console.error(`Error in signing up for user with userName ${userName}`);
-        res.status(500).send(`Unable to create a new user for username as ${userName}`);
-    })
-})
-
-*/
 
 app.post("/users/signup", async (req, res) => {
     const { name, phoneNumber, permanentAddress, userName, password, bloodGroup } = req.body;
@@ -123,6 +89,30 @@ app.post("/users/signup", async (req, res) => {
         console.error(`Error in signing up for user with userName ${userName}`);
         res.status(500).send(`Unable to create a new user for username as ${userName}`);
     })
+
+})
+
+
+// Update count of blood types
+app.put("/users/:userName/update",async(req,res) => {
+    const userName = req.params.userName;
+
+    await Receiver.findOneAndUpdate({userName:userName},{$inc:req.body}).exec().then((data) => {
+        console.log(`Updating details for receiver in DB with user name ${userName}`);
+        if(!data.length)
+        {
+            console.error(`No details are present in receiver model for user name ${userName}`);
+            res.status(404).send(`No details are present in receiver model for user name ${userName}`);
+        }
+
+
+        res.status(201).send(``)
+
+    
+    }).catch((err) => {
+        console.error(`Error in updating blood type count for users with user name ${userName}`);
+        res.status(500).send("Internal Server Error! Unable to ")
+    })
 })
 
 
@@ -150,36 +140,69 @@ app.post("/users/:userName/check", async (req, res) => {
 
     const userName = req.params.userName;
 
-    await User.find({ userName: userName }).exec().then((data) => {
-        if (data === null || data.length == 0) {
-            console.log(`User not found with username ${userName}`);
-            res.status(404).send(`User with username ${userName} Not found to check quantities`);
+    // Temporary bullshit code. Should optimize
+    await Receiver.find({userName:userName}).exec().then((data) => {
+        const responseFromDb = data[0];
+        const lat = responseFromDb.latitude;
+        const long = responseFromDb.longitude;
+        const existingMapOfBlood = responseFromDb.bloodTypes;
+        let requiredBlood = [];
+
+
+        console.log(`Successfully fetched data for receiver with user name ${userName}`);
+
+        for(const [key,value] of existingMapOfBlood)
+        {
+            if(value<MINIMUM)
+            {
+                requiredBlood.push(key);
+            }
         }
 
-        const responseFromDB = data[0];
-
-        let requiredBloodGroups = [];
-        responseFromDB.bloodGroups.forEach((value) => {
-            if(value.count<MINIMUM)
-            {
-                requiredBloodGroups.add(value);
-            }
-        });
-
-        if(requiredBloodGroups.length == 0)
+        // NO REQUIREMENT. SENDS THE COUNT OF EXISTING BLOOD TYPES
+        if(requiredBlood.length==0)
         {
+           return res.send(existingMapOfBlood);
+        }
 
-            res.send("All the blood groups are sufficient");
+        let queryParams = [];
+
+        for(const i of requiredBlood)
+        {
+            queryParams.push({bloodGroup:i});
         }
         
-        // TODO GENERATE ALERTS FUNCTIONALITY
+        const unitValue = 1000;
+        const users =  User.aggregate([
+            {
+                $geoNear: {
+                    near: {
+                        type: 'Point',
+                        coordinates: [long, lat]
+                    },
+                    query: { 
+                        $or:queryParams
+                    },
+                    maxDistance: DISTANCE * unitValue,
+                    distanceField: 'distance',
+                    distanceMultiplier: 1 / unitValue
+                }
+            },
+            
+            {
+                $sort:{
+                    distance:1
+                }
+            }
+            
+        ]);
 
+        return res.status(201).send(users);
 
     }).catch((err) => {
-        console.error(`Could not connect to DB to check quantites for user with username ${userName}`);
-        res.status(500).send(`Could not connect to DB to check quantites for user with username ${userName}`);
+        console.error(`Error in fetching details for user with user name  ${userName}`);
+        res.status(500).send("INTERNAL SERVER ERROR: "+err);
     })
-
 
 
 });

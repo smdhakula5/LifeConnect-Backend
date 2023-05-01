@@ -1,9 +1,5 @@
 const ReceiverSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    password: {
+    userName: {
         type: String,
         required: true
     },
@@ -21,7 +17,16 @@ const ReceiverSchema = new mongoose.Schema({
             "O+": 0,
             "O-": 0
         }
+    },
+    latitude:{
+      type: String,
+      required:true
+    },
+    longitude:{
+      type: String,
+      required:true
     }
+    
 });
 
 export default ReceiverSchema;
