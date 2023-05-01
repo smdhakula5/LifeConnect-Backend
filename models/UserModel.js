@@ -4,6 +4,6 @@ const mongoose = require("mongoose");
 
 
 // Defining the model and exporting it
-module.exports = mongoose.model("User", UserSchema);
+export default mongoose.model("User",UserSchema);
 
 

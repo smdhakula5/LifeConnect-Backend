@@ -1,9 +1,5 @@
 const ReceiverSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    password: {
+    userName: {
         type: String,
         required: true
     },
@@ -21,7 +17,18 @@ const ReceiverSchema = new mongoose.Schema({
             "O+": 0,
             "O-": 0
         }
-    }
+    },
+    location: {
+        type: {
+          type: String,
+          default: 'Point'
+        },
+        coordinates: {
+          type: [Number],
+          index: '2dsphere'
+        }
+      }
+    
 });
 
 export default ReceiverSchema;

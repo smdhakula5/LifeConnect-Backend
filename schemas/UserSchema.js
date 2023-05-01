@@ -14,11 +14,18 @@ const UserSchema = {
         required: true
     },
 
-    permanentAddress: {
-        type: String,
-        required: true
-    },
+    location: {
+        type: {
+          type: String,
+          default: 'Point'
+        },
+        coordinates: {
+          type: [Number],
+          index: '2dsphere'
+        }
+      },
 
+      
     userName: {
         type: String,
         required: true
@@ -37,34 +44,3 @@ const UserSchema = {
 }
 // exporting the schema
 export default UserSchema;
-
-/*
-
-// Donor User
-const donorUser = {
-  name: "John Doe",
-  phoneNumber: "1234567890",
-  userName: "johndoe",
-  password: "password123",
-  bloodGroup: "A+"
-};
-
-// Hospital User
-const hospitalUser = {
-  name: "XYZ Hospital",
-  phoneNumber: "0987654321",
-  userName: "xyzhospital",
-  password: "password456",
-  bloodGroups: [
-    { bloodType: "A+", count: 10 },
-    { bloodType: "B+", count: 5 },
-    { bloodType: "AB+", count: 7 },
-    { bloodType: "O+", count: 12 },
-    { bloodType: "A-", count: 3 },
-    { bloodType: "B-", count: 2 },
-    { bloodType: "AB-", count: 1 },
-    { bloodType: "O-", count: 4 }
-  ]
-};
-
-*/
