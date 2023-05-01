@@ -34,21 +34,6 @@ const UserSchema = {
         type: String,
         required: false
     },
-
-    // Fields specific to Hospital
-    bloodGroups: [
-        {
-            bloodType: {
-                type: String,
-                required: true
-            },
-            count: {
-                type: Number,
-                required: true,
-                default: 0
-            }
-        }
-    ]
 }
 // exporting the schema
 export default UserSchema;

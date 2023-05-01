@@ -15,7 +15,7 @@ mongoose.connect("mongodb://localhost:27017/LifeConnect");
 const User = mongoose.model("User", UserSchema);
 
 
-app.listen(3000, '0.0.0.0',() => {
+app.listen(3000,'0.0.0.0',() => {
     console.log("Server up and running on port 3000");
 });
 
@@ -26,12 +26,13 @@ app.get('/', (req, res) => {
 app.post('/users/login', async (req, res) => {
     const userName = req.body.username;
     const password = req.body.password;
+    console.log(req.body);
     await User.find({ userName: userName }).exec().then(users => {
         if (users.length == 0) {
             res.send({ status: false ,message:"User doesn't exist"});
         }
         if (users[0].password === password) {
-            res.send({ status: true, userType: req.body.bloodGroup != null?"donor":"receiver",message:"Success"});
+            res.send({ status: true,userType:users[0].bloodGroup!=null?"donor":"receiver",message:"Success"});
         }
         else {
             res.send({ status: false ,message:"Password not matched"});
