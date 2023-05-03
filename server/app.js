@@ -8,7 +8,7 @@ import { Db } from "mongodb";
 import cors from "cors";
 
 const MINIMUM = 5;
-const DISTANCE = 5;
+const DISTANCE = 10;
 
 const app = express();
 app.use(bodyParser.json());
@@ -16,6 +16,14 @@ app.use(cors());
 mongoose.connect("mongodb://localhost:27017/LifeConnect");
 const User = mongoose.model("User", UserSchema);
 const Receiver = mongoose.model("Receiver",ReceiverSchema);
+
+async function geocodeAddress(address, apiKey) {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const {lat, lng} = data.results[0].geometry.location;
+    return {lat, lng};
+}
 
 
 app.listen(3000,'0.0.0.0',() => {
@@ -48,10 +56,12 @@ app.post('/users/login', async (req, res) => {
 
 
 app.post("/users/signup", async (req, res) => {
-    const { name, phoneNumber, permanentAddress, userName, password, bloodGroup } = req.body;
+    const { name, phoneNumber, location, userName, password, bloodGroup } = req.body;
+
+    console.log(req.body);
     
     // If any required fields are missing, send a bad request response
-    if (!name || !phoneNumber || !permanentAddress || !userName || !password) {
+    if (!name || !phoneNumber || !location || !userName || !password) {
         console.error("Request body is missing required fields while signing up");
         return res.status(400).send({ "status": false, "message": "Request body is missing required fields while signing up!" });
     }
@@ -63,11 +73,19 @@ app.post("/users/signup", async (req, res) => {
         return res.status(403).send({ "status": false, "message": "User Already Exists!" });
     }
 
+    const address = location;
+    const apiKey = 'AIzaSyD_TW6eYj_vZurwo78v3L0c-VP2Q84KNTc';
+
+    const {lat, lng} = await geocodeAddress(address, apiKey)
+
     // After all the guards, creating a new user
     const newUser = {
         name,
         phoneNumber,
-        permanentAddress,
+        location: {
+            type: 'Point',
+            coordinates: [lng, lat]
+          },
         userName,
         password,
     };
@@ -94,26 +112,79 @@ app.post("/users/signup", async (req, res) => {
 
 
 // Update count of blood types
-app.put("/users/:userName/update",async(req,res) => {
+
+
+app.post("/users/:userName/update",async(req,res) => {
     const userName = req.params.userName;
 
-    await Receiver.findOneAndUpdate({userName:userName},{$inc:req.body}).exec().then((data) => {
-        console.log(`Updating details for receiver in DB with user name ${userName}`);
-        if(!data.length)
-        {
-            console.error(`No details are present in receiver model for user name ${userName}`);
-            res.status(404).send(`No details are present in receiver model for user name ${userName}`);
+    console.log(req.body);
+
+    const existingUser = await Receiver.findOne({ userName: userName }).exec();
+    if(!existingUser){
+        await Receiver.create({userName:userName,bloodTypes:req.body.bloodTypes}).then((data) => {
+            console.log(`Saving details in DB for user with user name ${userName}`)
+            res.status(201).send({
+                "status": "success",
+                "userName": userName,
+            })
+        }).catch((err) => {
+            console.error(`Error in signing up for user with userName ${userName}`);
+            res.status(500).send(`Unable to create a new user for username as ${userName}`);
+        })
+    }
+    else{
+        const bloodTypesToUpdate = {};
+        Object.entries(req.body.bloodTypes).forEach(([bloodType, count]) => {
+        if (count > 0) {
+            bloodTypesToUpdate[`bloodTypes.${bloodType}`] = count;
         }
+        });
 
-
-        res.status(201).send(``)
-
-    
-    }).catch((err) => {
-        console.error(`Error in updating blood type count for users with user name ${userName}`);
+        await Receiver.findOneAndUpdate(
+        { userName: userName },
+        { $inc: bloodTypesToUpdate },
+        { new: true }
+        )
+        .then((data) => {
+        console.log(`Updating details for receiver in DB with user name ${userName}`);
+        res.status(201).send(``);
+        })
+        .catch((err) => {
+        console.log(`Error in updating blood type count for users with user name ${userName}`);
         res.status(500).send("Internal Server Error! Unable to ")
-    })
-})
+        });
+    }});
+
+
+/*
+app.put("/users/:userName/update", async (req, res) => {
+    const userName = req.params.userName;
+  
+    console.log(req.body); // Check if the request body is correct
+  
+    try {
+      const existingUser = await Receiver.findOne({ userName: userName }).exec();
+      if (!existingUser) {
+        await Receiver.create({ userName: userName, bloodTypes: req.body.bloodTypes });
+        console.log(`Saving details in DB for user with userId ${userId}`);
+        res.status(201).send({
+          "status": "success",
+          "userId": userName,
+        });
+      } else {
+        console.log(`Existing user found: ${existingUser}`);
+        await Receiver.findOneAndUpdate({ userName: userName }, { $inc: req.body.bloodTypes });
+        console.log(`Updating details for receiver in DB with user id ${userName}`);
+        res.status(201).send(``);
+      }
+    } catch (err) {
+      console.error(`Error in updating blood type count for users with user id ${userName}: ${err}`);
+      res.status(500).send("Internal Server Error! Unable to update blood type count");
+    }
+  });
+
+  */
+  
 
 
 // API to fetch user profile for a specific user
@@ -136,15 +207,49 @@ app.get("/users/:userName", async (req, res) => {
 
 // API to check existing quantities and send alerts. Currently incomplete.
 
-app.post("/users/:userName/check", async (req, res) => {
+app.post("/:userName/emergency",async(req,res)=>{
+    const userName = req.params.userName;
+    const bloodType = req.body.bloodType;
+    await User.find({userName:userName}).exec().then(async(data)=>{
+        const responseFromDb = data[0];
+        const lat = responseFromDb.location.coordinates[1];
+        const long = responseFromDb.location.coordinates[0];
+        const unitValue = 1000;
+        const users =  await User.aggregate([
+            {
+                $geoNear: {
+                    near: {
+                        type: 'Point',
+                        coordinates: [long, lat]
+                    },
+                    distanceField: 'distance',
+                    maxDistance: DISTANCE * unitValue,
+                    spherical: true
+                }
+            },
+            {
+                $match: {
+                    bloodGroup: bloodType
+                }
+            },
+            {
+                $sort: {
+                    distance: 1
+                }
+            }
+        ]);
+        //Generate alerts to these users below
+        res.send(users);
+    })
+})
+
+app.get("/users/:userName/check", async (req, res) => {
 
     const userName = req.params.userName;
 
     // Temporary bullshit code. Should optimize
     await Receiver.find({userName:userName}).exec().then((data) => {
         const responseFromDb = data[0];
-        const lat = responseFromDb.latitude;
-        const long = responseFromDb.longitude;
         const existingMapOfBlood = responseFromDb.bloodTypes;
         let requiredBlood = [];
 
@@ -162,42 +267,11 @@ app.post("/users/:userName/check", async (req, res) => {
         // NO REQUIREMENT. SENDS THE COUNT OF EXISTING BLOOD TYPES
         if(requiredBlood.length==0)
         {
-           return res.send(existingMapOfBlood);
+           return res.status(201).send({quantities:existingMapOfBlood});
         }
-
-        let queryParams = [];
-
-        for(const i of requiredBlood)
-        {
-            queryParams.push({bloodGroup:i});
+        else{
+            return res.status(201).send({quantities:existingMapOfBlood,required:requiredBlood})
         }
-        
-        const unitValue = 1000;
-        const users =  User.aggregate([
-            {
-                $geoNear: {
-                    near: {
-                        type: 'Point',
-                        coordinates: [long, lat]
-                    },
-                    query: { 
-                        $or:queryParams
-                    },
-                    maxDistance: DISTANCE * unitValue,
-                    distanceField: 'distance',
-                    distanceMultiplier: 1 / unitValue
-                }
-            },
-            
-            {
-                $sort:{
-                    distance:1
-                }
-            }
-            
-        ]);
-
-        return res.status(201).send(users);
 
     }).catch((err) => {
         console.error(`Error in fetching details for user with user name  ${userName}`);
