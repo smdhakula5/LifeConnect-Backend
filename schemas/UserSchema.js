@@ -41,6 +41,10 @@ const UserSchema = {
         type: String,
         required: false
     },
+    pushToken:{
+        type: String,
+        required: true
+    }
 }
 // exporting the schema
 export default UserSchema;

@@ -6,6 +6,9 @@ import mongoose from "mongoose";
 import bodyParser from "body-parser";
 import { Db } from "mongodb";
 import cors from "cors";
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const MINIMUM = 5;
 const DISTANCE = 10;
@@ -24,6 +27,28 @@ async function geocodeAddress(address, apiKey) {
     const {lat, lng} = data.results[0].geometry.location;
     return {lat, lng};
 }
+
+async function sendPushNotification(bloodType,expoPushTokens) {
+    const messages = expoPushTokens.map(user => ({
+      to: user.pushToken,
+      sound: 'default',
+      title: 'Emergency!!',
+      body: `Type ${bloodType} is require to save patient, please help!`,
+      data: { someData: 'goes here' },
+    }));
+
+  
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(messages),
+    });
+  }
+  
 
 
 app.listen(3000,'0.0.0.0',() => {
@@ -56,17 +81,15 @@ app.post('/users/login', async (req, res) => {
 
 
 app.post("/users/signup", async (req, res) => {
-    const { name, phoneNumber, location, userName, password, bloodGroup } = req.body;
+    const { name, phoneNumber, location, userName, password, bloodGroup,pushToken } = req.body;
 
     console.log(req.body);
     
-    // If any required fields are missing, send a bad request response
-    if (!name || !phoneNumber || !location || !userName || !password) {
+    if (!name || !phoneNumber || !location || !userName || !password || !pushToken) {
         console.error("Request body is missing required fields while signing up");
         return res.status(400).send({ "status": false, "message": "Request body is missing required fields while signing up!" });
     }
 
-    // Checking if user is already present
     const existingUser = await User.findOne({ userName: userName }).exec();
     if (existingUser) {
         console.error(`User already exists with username as ${userName}`);
@@ -74,11 +97,10 @@ app.post("/users/signup", async (req, res) => {
     }
 
     const address = location;
-    const apiKey = 'AIzaSyD_TW6eYj_vZurwo78v3L0c-VP2Q84KNTc';
+    const apiKey = process.env.API_KEY;
 
     const {lat, lng} = await geocodeAddress(address, apiKey)
 
-    // After all the guards, creating a new user
     const newUser = {
         name,
         phoneNumber,
@@ -88,6 +110,7 @@ app.post("/users/signup", async (req, res) => {
           },
         userName,
         password,
+        pushToken,
     };
     
     if (bloodGroup) {
@@ -109,10 +132,6 @@ app.post("/users/signup", async (req, res) => {
     })
 
 })
-
-
-// Update count of blood types
-
 
 app.post("/users/:userName/update",async(req,res) => {
     const userName = req.params.userName;
@@ -155,39 +174,6 @@ app.post("/users/:userName/update",async(req,res) => {
         });
     }});
 
-
-/*
-app.put("/users/:userName/update", async (req, res) => {
-    const userName = req.params.userName;
-  
-    console.log(req.body); // Check if the request body is correct
-  
-    try {
-      const existingUser = await Receiver.findOne({ userName: userName }).exec();
-      if (!existingUser) {
-        await Receiver.create({ userName: userName, bloodTypes: req.body.bloodTypes });
-        console.log(`Saving details in DB for user with userId ${userId}`);
-        res.status(201).send({
-          "status": "success",
-          "userId": userName,
-        });
-      } else {
-        console.log(`Existing user found: ${existingUser}`);
-        await Receiver.findOneAndUpdate({ userName: userName }, { $inc: req.body.bloodTypes });
-        console.log(`Updating details for receiver in DB with user id ${userName}`);
-        res.status(201).send(``);
-      }
-    } catch (err) {
-      console.error(`Error in updating blood type count for users with user id ${userName}: ${err}`);
-      res.status(500).send("Internal Server Error! Unable to update blood type count");
-    }
-  });
-
-  */
-  
-
-
-// API to fetch user profile for a specific user
 app.get("/users/:userName", async (req, res) => {
     const userName = req.params.userName;
 
@@ -204,8 +190,6 @@ app.get("/users/:userName", async (req, res) => {
     })
 })
 
-
-// API to check existing quantities and send alerts. Currently incomplete.
 
 app.post("/:userName/emergency",async(req,res)=>{
     const userName = req.params.userName;
@@ -238,7 +222,8 @@ app.post("/:userName/emergency",async(req,res)=>{
                 }
             }
         ]);
-        //Generate alerts to these users below
+        const tokens = users.filter((user)=>user.pushToken!==undefined);
+        sendPushNotification(bloodType,tokens);
         res.send(users);
     })
 })
@@ -247,7 +232,6 @@ app.get("/users/:userName/check", async (req, res) => {
 
     const userName = req.params.userName;
 
-    // Temporary bullshit code. Should optimize
     await Receiver.find({userName:userName}).exec().then((data) => {
         const responseFromDb = data[0];
         const existingMapOfBlood = responseFromDb.bloodTypes;
@@ -264,7 +248,6 @@ app.get("/users/:userName/check", async (req, res) => {
             }
         }
 
-        // NO REQUIREMENT. SENDS THE COUNT OF EXISTING BLOOD TYPES
         if(requiredBlood.length==0)
         {
            return res.status(201).send({quantities:existingMapOfBlood});
