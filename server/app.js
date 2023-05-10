@@ -33,7 +33,7 @@ async function sendPushNotification(bloodType,expoPushTokens) {
       to: user.pushToken,
       sound: 'default',
       title: 'Emergency!!',
-      body: `Type ${bloodType} is require to save patient, please help!`,
+      body: `Patient requires urgent blood transfusion, please help!`,
       data: { someData: 'goes here' },
     }));
 
@@ -48,6 +48,30 @@ async function sendPushNotification(bloodType,expoPushTokens) {
       body: JSON.stringify(messages),
     });
   }
+
+  function getCompatibleBloodTypes(bloodType) {
+    switch (bloodType) {
+      case "A+":
+        return ["A+", "A-", "O+", "O-"];
+      case "A-":
+        return ["A-", "O-"];
+      case "B+":
+        return ["B+", "B-", "O+", "O-"];
+      case "B-":
+        return ["B-", "O-"];
+      case "AB+":
+        return ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+      case "AB-":
+        return ["A-", "B-", "AB-", "O-"];
+      case "O+":
+        return ["O+", "O-"];
+      case "O-":
+        return ["O-"];
+      default:
+        return [];
+    }
+  }
+  
   
 
 
@@ -199,6 +223,7 @@ app.post("/:userName/emergency",async(req,res)=>{
         const lat = responseFromDb.location.coordinates[1];
         const long = responseFromDb.location.coordinates[0];
         const unitValue = 1000;
+        const compatibleBloodTypes = getCompatibleBloodTypes(bloodType);
         const users =  await User.aggregate([
             {
                 $geoNear: {
@@ -213,7 +238,7 @@ app.post("/:userName/emergency",async(req,res)=>{
             },
             {
                 $match: {
-                    bloodGroup: bloodType
+                    bloodGroup: { $in: compatibleBloodTypes },
                 }
             },
             {
@@ -222,6 +247,7 @@ app.post("/:userName/emergency",async(req,res)=>{
                 }
             }
         ]);
+        console.log(users);
         const tokens = users.filter((user)=>user.pushToken!==undefined);
         sendPushNotification(bloodType,tokens);
         res.send(users);
