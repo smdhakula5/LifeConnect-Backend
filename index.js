@@ -19,27 +19,38 @@ app.use(cors());
 const uri = "mongodb+srv://kapasy591:uNfI70FCPjMRqCIO@cluster0.09fyggc.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
+// const client = new MongoClient(uri, {
+//     serverApi: {
+//       version: ServerApiVersion.v1,
+//       strict: true,
+//       deprecationErrors: true,
+//     }
+//   });
 
-  async function run() {
-    try {
-      // Connect the client to the server    (optional starting in v4.7)
-      await client.connect();
-      // Send a ping to confirm a successful connection
-      await client.db("LifeConnect").command({ ping: 1 });
-      console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    } finally {
-      // Ensures that the client will close when you finish/error
-      await client.close();
-    }
-  }
-  run().catch(console.dir);
+//   async function run() {
+//     try {
+//       // Connect the client to the server    (optional starting in v4.7)
+//       await client.connect();
+//       // Send a ping to confirm a successful connection
+//       await client.db("LifeConnect").command({ ping: 1 });
+//       console.log("Pinged your deployment. You successfully connected to MongoDB!");
+//     } finally {
+//       // Ensures that the client will close when you finish/error
+//       await client.close();
+//     }
+//   }
+//   run().catch(console.dir);
+mongoose.connect(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+    .then(() => {
+      console.log('Connected to MongoDB');
+      // Start your server or perform other operations
+    })
+    .catch((error) => {
+      console.error('Error connecting to MongoDB:', error.message);
+    });
 const User = mongoose.model("User", UserSchema);
 const Receiver = mongoose.model("Receiver",ReceiverSchema);
 
