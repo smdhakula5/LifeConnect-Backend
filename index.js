@@ -3,7 +3,7 @@ import ReceiverSchema from './schemas/ReceiverSchema.js';
 import express from "express";
 import mongoose from "mongoose";
 import bodyParser from "body-parser";
-import { Db } from "mongodb";
+import { Db,ServerApiVersion,MongoClient } from "mongodb";
 import cors from "cors";
 import dotenv from 'dotenv';
 
@@ -15,7 +15,31 @@ const DISTANCE = 10;
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
-mongoose.connect("mongodb://localhost:27017/LifeConnect");
+
+const uri = "mongodb+srv://kapasy591:uNfI70FCPjMRqCIO@cluster0.09fyggc.mongodb.net/?retryWrites=true&w=majority";
+
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
+const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
+    }
+  });
+
+  async function run() {
+    try {
+      // Connect the client to the server    (optional starting in v4.7)
+      await client.connect();
+      // Send a ping to confirm a successful connection
+      await client.db("LifeConnect").command({ ping: 1 });
+      console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    } finally {
+      // Ensures that the client will close when you finish/error
+      await client.close();
+    }
+  }
+  run().catch(console.dir);
 const User = mongoose.model("User", UserSchema);
 const Receiver = mongoose.model("Receiver",ReceiverSchema);
 
