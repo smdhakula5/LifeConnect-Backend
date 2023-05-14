@@ -1,6 +1,5 @@
-import latAndLong from "../schemas/LatAndLongObject.js";
-import UserSchema from "../schemas/UserSchema.js";
-import ReceiverSchema from "../schemas/ReceiverSchema.js";
+import UserSchema from './schemas/UserSchema.js';
+import ReceiverSchema from './schemas/ReceiverSchema.js';
 import express from "express";
 import mongoose from "mongoose";
 import bodyParser from "body-parser";
@@ -81,6 +80,11 @@ app.listen(3000,'0.0.0.0',() => {
 
 app.get('/', (req, res) => {
     res.send("Hello");
+});
+
+app.post('/',(req,res)=>{
+    console.log(req.body.location);
+    res.send();
 });
 
 app.post('/users/login', async (req, res) => {
