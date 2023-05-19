@@ -62,13 +62,16 @@ async function geocodeAddress(address, apiKey) {
     return {lat, lng};
 }
 
-async function sendPushNotification(bloodType,expoPushTokens) {
+async function sendPushNotification(bloodType,expoPushTokens,long,lat) {
     const messages = expoPushTokens.map(user => ({
       to: user.pushToken,
       sound: 'default',
       title: 'Emergency!!',
       body: `Patient requires urgent blood transfusion, please help!`,
-      data: { someData: 'goes here' },
+      data: { 
+        longitude:long,
+        latitude:lat,
+       },
     }));
 
   
@@ -288,7 +291,7 @@ app.post("/:userName/emergency",async(req,res)=>{
         ]);
         console.log(users);
         const tokens = users.filter((user)=>user.pushToken!==undefined);
-        sendPushNotification(bloodType,tokens);
+        sendPushNotification(bloodType,tokens,long,lat);
         res.send(users);
     })
 })
