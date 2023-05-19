@@ -69,8 +69,8 @@ async function sendPushNotification(bloodType,expoPushTokens,long,lat) {
       title: 'Emergency!!',
       body: `Patient requires urgent blood transfusion, please help!`,
       data: { 
-        longitude:long,
-        latitude:lat,
+        longitude:long.toString(),
+        latitude:lat.toString(),
        },
     }));
 
